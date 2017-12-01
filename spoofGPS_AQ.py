@@ -15,7 +15,7 @@ import serial
 import struct
 import time
 
-ser0 = serial.Serial(port = "/dev/ttyUSB0") #, baudrate = 9600)
+ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
 
 def readAndPrint(port):
 	readByte = port.read()
@@ -44,8 +44,6 @@ class UBXSpoofer():
 			CK_A &= 255
 			CK_B += CK_A
 			CK_B &= 255
-		print "CK_A: ", CK_A
-		print "CK_B: ", CK_B
 		return struct.pack('B', CK_A), struct.pack('B', CK_B)
 	
 	"""
@@ -100,10 +98,10 @@ class UBXSpoofer():
 		port.write(struct.pack('c', b"\x01"))
 		port.write(struct.pack('c', b"\x02")) #Little
 		port.write(struct.pack('c', b"\x00")) #	endian
-		port.write(struct.pack('c', b"\x06")) #Maybe try c
-		MSG = struct.pack('c', b"\x06")
-		port.write(struct.pack('c', b"\x00")) #Maybe try c
-		MSG += struct.pack('c', b"\x00")
+		port.write(struct.pack('c', self.messageClass))
+		MSG = struct.pack('c', self.messageClass)
+		port.write(struct.pack('c', self.messageID))
+		MSG += struct.pack('c', self.messageID)
 		A, B = self.checksum(MSG)
 		port.write(A)
 		port.write(B)
@@ -124,11 +122,11 @@ class UBXSpoofer():
 		print "ACK sent"
 
 test = UBXSpoofer()
-"""
+
 while True:
 	test.classify(ser0)
 	test.sendACK(ser0)
-"""
-test.readMessagesStream(ser0)
+
+#test.readMessagesStream(ser0)
 
 
