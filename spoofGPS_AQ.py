@@ -5,7 +5,7 @@ Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk
 
 Notes to dev:
 * make port a part of class init, no reason for it to be a variable, as it will never change.
-* Test GPS module outside
+* I THINK AUTOQUAD USES MORE THAN JUST TX AND RX!!
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -29,8 +29,8 @@ class UBXSpoofer():
 		#self.CFG_PRT = b"\x06\x00"
 		#self.ACK_ACK = b"\x05\x01"
 		#self.NAV_POSLLH = b"\x01\x02"
-		self.checksumA = 0
-		self.checksumB = 0
+		#self.checksumA = 0
+		#self.checksumB = 0
 		self.messageClass = ""
 		self.messageID = ""
 
@@ -48,7 +48,7 @@ class UBXSpoofer():
 		print "CK_B: ", CK_B
 		return struct.pack('B', CK_A), struct.pack('B', CK_B)
 	
-	
+	"""
 	def checksumClear(self):
 		self.checksumA = 0
 		self.checksumB = 0
@@ -56,6 +56,7 @@ class UBXSpoofer():
 	def checksumCalc(self, char):
 		self.checksumA += ord(char) #Should input be 0x00 instead of b"\x00"???
 		self.checksumB += self.checksumA
+	"""
 	
 	def readMessagesStream(self, port):
 		readByte = port.read()
@@ -93,32 +94,19 @@ class UBXSpoofer():
 		print "messageID: ", hex(ord(self.messageID))
 
 	def sendACK(self, port):
-		#self.checksumClear()
 		port.write(struct.pack('c', b"\xb5"))
 		port.write(struct.pack('c', b"\x62"))
 		port.write(struct.pack('c', b"\x05"))
-		#self.checksumCalc(b"\x05")
-		MSG = struct.pack('c', b"\x05")
 		port.write(struct.pack('c', b"\x01"))
-		#self.checksumCalc(b"\x01")
-		MSG += struct.pack('c', b"\x01")
 		port.write(struct.pack('c', b"\x02")) #Little
-		#self.checksumCalc(b"\x02")
-		MSG += struct.pack('c', b"\x02")
 		port.write(struct.pack('c', b"\x00")) #	endian
-		#self.checksumCalc(b"\x00")
-		MSG += struct.pack('c', b"\x00")
 		port.write(struct.pack('c', b"\x06")) #Maybe try c
-		#self.checksumCalc(b"\x06")
-		MSG += struct.pack('c', b"\x06")
+		MSG = struct.pack('c', b"\x06")
 		port.write(struct.pack('c', b"\x00")) #Maybe try c
-		#self.checksumCalc(b"\x00")
 		MSG += struct.pack('c', b"\x00")
 		A, B = self.checksum(MSG)
 		port.write(A)
 		port.write(B)
-		#port.write(struct.pack('B', self.checksumA)) #Maybe try c
-		#port.write(struct.pack('B', self.checksumB)) #Maybe try c
 		
 		"""
 		ACKMessage = struct.pack('cc', self.SYNC[0], self.SYNC[1])
@@ -136,9 +124,11 @@ class UBXSpoofer():
 		print "ACK sent"
 
 test = UBXSpoofer()
-#while True:
-#	test.classify(ser0)
-#	test.sendACK(ser0)
+"""
+while True:
+	test.classify(ser0)
+	test.sendACK(ser0)
+"""
 test.readMessagesStream(ser0)
 
 
