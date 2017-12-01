@@ -17,18 +17,10 @@ import time
 
 ser0 = serial.Serial(port = "/dev/ttyUSB0") #, baudrate = 9600)
 
-
 def readAndPrint(port):
 	readByte = port.read()
 	print hex(ord(readByte))
 	return readByte
-"""
-def dontCareJustListen(port):
-	positionMSG = struct.pack("cccchLllllLL", b"\xb5", b"\x62", b"\x01", b"\x02", 28, 10000000, 0.000001043, 0.000005537, 10000, 10000, 100, 100)
-	positionMSG += checksum(positionMSG[2:])
-	while True:
-		port.write(positionMSG)
-"""
 
 class UBXSpoofer():
 	def __init__(self):
@@ -49,9 +41,9 @@ class UBXSpoofer():
 		buf = buffer(message)
 		for i in buf:
 			CK_A += ord(i) #Return integer value representing the character
-			#CK_A &= 255 #REMOVE MASK??
+			CK_A &= 255
 			CK_B += CK_A
-			#CK_B &= 255 #REMOVE MASK??
+			CK_B &= 255
 		print "CK_A: ", CK_A
 		print "CK_B: ", CK_B
 		return struct.pack('B', CK_A), struct.pack('B', CK_B)
