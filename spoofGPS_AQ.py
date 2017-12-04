@@ -12,6 +12,7 @@ Notes to dev:
 * Add the other requested messages
 * What is rate in this case?
 * Send with baud rate 9600?
+* FIRST: try to send dcjl again!
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -39,7 +40,8 @@ class UBXSpoofer():
 		#self.checksumB = 0
 		self.messageClass = ""
 		self.messageID = ""
-	
+
+
 	def dontCareJustListen(self, port):
 		#positionMSG = struct.pack("cccchLllllLL", b"\xb5", b"\x62", b"\x01", b"\x02", 28, 10000000, 0.000001043, 0.000005537, 10000, 10000, 100, 100) #Wrong, length is two bytes
 		#positionMSG += self.checksum(positionMSG[2:])
@@ -49,22 +51,20 @@ class UBXSpoofer():
 		MSG = struct.pack('c', b"\x01")
 		port.write(struct.pack('c', b"\x02"))
 		MSG += struct.pack('c', b"\x02")
-		port.write(struct.pack('c', b"\x1c"))
-		MSG += struct.pack('c', b"\x1c")
-		port.write(struct.pack('c', b"\x00"))
-		MSG += struct.pack('c', b"\x00")
-		port.write(struct.pack('l', 0.000001043))
-		MSG += struct.pack('l', 0.000001043)
-		port.write(struct.pack('l', 0.000005537))
-		MSG += struct.pack('l', 0.000005537)
-		port.write(struct.pack('l', 10000))
-		MSG += struct.pack('l', 10000)
-		port.write(struct.pack('l', 10000))
-		MSG += struct.pack('L', 10000)
-		port.write(struct.pack('L', 100))
-		MSG += struct.pack('L', 100)
-		port.write(struct.pack('L', 100))
-		MSG += struct.pack('L', 100)
+		port.write(struct.pack('<L', 134644000))
+		MSG += struct.pack('<L', 134644000)
+		port.write(struct.pack('<l', 0.000001043))
+		MSG += struct.pack('<l', 0.000001043)
+		port.write(struct.pack('<l', 0.000005537))
+		MSG += struct.pack('<l', 0.000005537)
+		port.write(struct.pack('<l', 10000))
+		MSG += struct.pack('<l', 10000)
+		port.write(struct.pack('<l', 10000))
+		MSG += struct.pack('<l', 10000)
+		port.write(struct.pack('<L', 100))
+		MSG += struct.pack('<L', 100)
+		port.write(struct.pack('<L', 100))
+		MSG += struct.pack('<L', 100)
 		A, B = self.checksum(MSG)
 		port.write(A)
 		port.write(B)
@@ -89,10 +89,10 @@ class UBXSpoofer():
 		self.checksumB = 0
 	
 	def checksumCalc(self, char):
-		self.checksumA += ord(char) #Should input be 0x00 instead of b"\x00"???
+		self.checksumA += ord(char) #Should input be 0x00 instead of b"00"???
 		self.checksumB += self.checksumA
 	"""
-	
+
 	def readMessagesStream(self, port):
 		readByte = port.read()
 		while True:
@@ -116,7 +116,6 @@ class UBXSpoofer():
 				readByte = port.read()
 				print hex(ord(readByte))
 				
-
 	def classify(self, port):
 		readByte = ""
 		while readByte != "\xb5":
@@ -136,10 +135,8 @@ class UBXSpoofer():
 		MSG = struct.pack('c', b"\x05")
 		port.write(struct.pack('c', b"\x01"))
 		MSG += struct.pack('c', b"\x01")
-		port.write(struct.pack('c', b"\x02")) #Little
-		MSG += struct.pack('c', b"\x02")
-		port.write(struct.pack('c', b"\x00")) #	endian
-		MSG += struct.pack('c', b"\x00")
+		port.write(struct.pack('<h', 2))
+		MSG += struct.pack('<h', 2)
 		port.write(struct.pack('c', self.messageClass))
 		MSG += struct.pack('c', self.messageClass)
 		port.write(struct.pack('c', self.messageID))
@@ -167,8 +164,26 @@ class UBXSpoofer():
 		MSG = ""
 		port.write(struct.pack('c', b"\xb5"))
 		port.write(struct.pack('c', b"\x62"))
-		port.write(struct.pack())
-		MSG = struct.pack()
+		port.write(struct.pack('c', b"\x01"))
+		MSG = struct.pack('c', b"\x01")
+		port.write(struct.pack('c', b"\x12"))
+		MSG = struct.pack('c', b"\x12")
+		port.write(struct.pack('c', b"\x20")) #08 06 81 20 TOW in litte endian, send as singular bytes instead of as L
+		MSG = struct.pack('c', b"\x20")
+		port.write(struct.pack('c', b"\x81"))
+		MSG = struct.pack('c', b"\x81")
+		port.write(struct.pack('c', b"\x06"))
+		MSG = struct.pack('c', b"\x06")
+		port.write(struct.pack('c', b"\x08"))
+		MSG = struct.pack('c', b"\x08")
+		port.write(struct.pack('c', b"\xAA"))
+		MSG = struct.pack('c', b"\xAA")
+		port.write(struct.pack('c', b"\xAA"))
+		MSG = struct.pack('c', b"\xAA")
+		port.write(struct.pack('c', b"\xAA"))
+		MSG = struct.pack('c', b"\xAA")
+		port.write(struct.pack('c', b"\xAA"))
+		MSG = struct.pack('c', b"\xAA")
 	"""
 
 test = UBXSpoofer()
@@ -178,17 +193,4 @@ while True:
 	test.sendACK(ser0)
 """
 #test.readMessagesStream(ser0)
-#test.dontCareJustListen(ser0)
-
-hej = struct.pack('ccccccc', b"\x06", b"\x01", b"\x03", b"\x00", b"\x01", b"\x21", b"\x05")
-A, B = test.checksum(hej)
-print hex(ord(A))
-print hex(ord(B))
-#0x31 0x89
-"""
-hej = struct.pack('cccccccccccccccccccccccc', b"\x06", b"\x07", b"\x14", b"\x00", b"\x40", b"\42", b"\0")
-A, B = test.checksum(hej)
-print hex(ord(A))
-print hex(ord(B))
-#0x31 0x89
-"""
+test.dontCareJustListen(ser0)
