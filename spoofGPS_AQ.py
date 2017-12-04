@@ -179,15 +179,16 @@ while True:
 """
 #test.readMessagesStream(ser0)
 #test.dontCareJustListen(ser0)
-"""
-hej = struct.pack('ccccccc', b"\x06", b"\x01", b"\x03", b"\x00", b"\x01", b"\21", b"\05")
+
+hej = struct.pack('ccccccc', b"\x06", b"\x01", b"\x03", b"\x00", b"\x01", b"\x21", b"\x05")
 A, B = test.checksum(hej)
 print hex(ord(A))
 print hex(ord(B))
 #0x31 0x89
 """
-hej = struct.pack('ccccccc', b"\x06", b"\x01", b"\x03", b"\x00", b"\x01", b"\21", b"\05")
+hej = struct.pack('cccccccccccccccccccccccc', b"\x06", b"\x07", b"\x14", b"\x00", b"\x40", b"\42", b"\0")
 A, B = test.checksum(hej)
 print hex(ord(A))
 print hex(ord(B))
 #0x31 0x89
+"""
