@@ -6,6 +6,8 @@ Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk
 Notes to dev:
 * make port a part of class init, no reason for it to be a variable, as it will never change.
 * I THINK AUTOQUAD USES MORE THAN JUST TX AND RX!!
+* 
+* Try new and correct ACK
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -33,7 +35,38 @@ class UBXSpoofer():
 		#self.checksumB = 0
 		self.messageClass = ""
 		self.messageID = ""
-
+	
+	def dontCareJustListen(self, port):
+		#positionMSG = struct.pack("cccchLllllLL", b"\xb5", b"\x62", b"\x01", b"\x02", 28, 10000000, 0.000001043, 0.000005537, 10000, 10000, 100, 100) #Wrong, length is two bytes
+		#positionMSG += self.checksum(positionMSG[2:])
+		port.write(struct.pack('c', b"\xb5"))
+		port.write(struct.pack('c', b"\x62"))
+		port.write(struct.pack('c', b"\x01"))
+		MSG = struct.pack('c', b"\x01")
+		port.write(struct.pack('c', b"\x02"))
+		MSG += struct.pack('c', b"\x02")
+		port.write(struct.pack('c', b"\x1c"))
+		MSG += struct.pack('c', b"\x1c")
+		port.write(struct.pack('c', b"\x00"))
+		MSG += struct.pack('c', b"\x00")
+		port.write(struct.pack('l', 0.000001043))
+		MSG += struct.pack('l', 0.000001043)
+		port.write(struct.pack('l', 0.000005537))
+		MSG += struct.pack('l', 0.000005537)
+		port.write(struct.pack('l', 10000))
+		MSG += struct.pack('l', 10000)
+		port.write(struct.pack('l', 10000))
+		MSG += struct.pack('L', 10000)
+		port.write(struct.pack('L', 100))
+		MSG += struct.pack('L', 100)
+		port.write(struct.pack('L', 100))
+		MSG += struct.pack('L', 100)
+		A, B = self.checksum(MSG)
+		port.write(A)
+		port.write(B)
+		
+		while True:
+			port.write(MSG)
 	
 	def checksum(self, message):
 		CK_A = 0x00
@@ -95,11 +128,15 @@ class UBXSpoofer():
 		port.write(struct.pack('c', b"\xb5"))
 		port.write(struct.pack('c', b"\x62"))
 		port.write(struct.pack('c', b"\x05"))
+		MSG = struct.pack('c', b"\x05")
 		port.write(struct.pack('c', b"\x01"))
+		MSG += struct.pack('c', b"\x01")
 		port.write(struct.pack('c', b"\x02")) #Little
+		MSG += struct.pack('c', b"\x02")
 		port.write(struct.pack('c', b"\x00")) #	endian
+		MSG += struct.pack('c', b"\x00")
 		port.write(struct.pack('c', self.messageClass))
-		MSG = struct.pack('c', self.messageClass)
+		MSG += struct.pack('c', self.messageClass)
 		port.write(struct.pack('c', self.messageID))
 		MSG += struct.pack('c', self.messageID)
 		A, B = self.checksum(MSG)
@@ -123,10 +160,11 @@ class UBXSpoofer():
 
 test = UBXSpoofer()
 
-while True:
-	test.classify(ser0)
-	test.sendACK(ser0)
+#while True:
+#	test.classify(ser0)
+#	test.sendACK(ser0)
 
 #test.readMessagesStream(ser0)
+test.dontCareJustListen(ser0)
 
 
