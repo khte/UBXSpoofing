@@ -12,7 +12,6 @@ Notes to dev:
 * Add the other requested messages
 * What is rate in this case?
 * Send with baud rate 9600?
-* FIRST: try to send dcjl again!
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -45,6 +44,7 @@ class UBXSpoofer():
 	def dontCareJustListen(self, port):
 		#positionMSG = struct.pack("cccchLllllLL", b"\xb5", b"\x62", b"\x01", b"\x02", 28, 10000000, 0.000001043, 0.000005537, 10000, 10000, 100, 100) #Wrong, length is two bytes
 		#positionMSG += self.checksum(positionMSG[2:])
+		MSG = ""
 		port.write(struct.pack('c', b"\xb5"))
 		port.write(struct.pack('c', b"\x62"))
 		port.write(struct.pack('c', b"\x01"))
@@ -78,9 +78,9 @@ class UBXSpoofer():
 		buf = buffer(message)
 		for i in buf:
 			CK_A += ord(i) #Return integer value representing the character
-			#CK_A &= 255
+			CK_A &= 255
 			CK_B += CK_A
-			#CK_B &= 255
+			CK_B &= 255
 		return struct.pack('B', CK_A), struct.pack('B', CK_B)
 	
 	"""
