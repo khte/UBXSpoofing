@@ -5,9 +5,13 @@ Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk
 
 Notes to dev:
 * make port a part of class init, no reason for it to be a variable, as it will never change.
-* I THINK AUTOQUAD USES MORE THAN JUST TX AND RX!!
+* I THINK AUTOQUAD USES MORE THAN JUST TX AND RX!! (TIMEPULSE, maybe not..)
 * 
-* Try new and correct ACK
+* Make sure that checksum is calculated correctly
+* Try to send positions after receiving last conf. msg.
+* Add the other requested messages
+* What is rate in this case?
+* Send with baud rate 9600?
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -74,9 +78,9 @@ class UBXSpoofer():
 		buf = buffer(message)
 		for i in buf:
 			CK_A += ord(i) #Return integer value representing the character
-			CK_A &= 255
+			#CK_A &= 255
 			CK_B += CK_A
-			CK_B &= 255
+			#CK_B &= 255
 		return struct.pack('B', CK_A), struct.pack('B', CK_B)
 	
 	"""
@@ -125,6 +129,7 @@ class UBXSpoofer():
 		print "messageID: ", hex(ord(self.messageID))
 
 	def sendACK(self, port):
+		MSG = ""
 		port.write(struct.pack('c', b"\xb5"))
 		port.write(struct.pack('c', b"\x62"))
 		port.write(struct.pack('c', b"\x05"))
@@ -157,14 +162,32 @@ class UBXSpoofer():
 		port.write("\r\n")
 		"""
 		print "ACK sent"
+	"""
+	def sendNAV_VELNED(self, port):
+		MSG = ""
+		port.write(struct.pack('c', b"\xb5"))
+		port.write(struct.pack('c', b"\x62"))
+		port.write(struct.pack())
+		MSG = struct.pack()
+	"""
 
 test = UBXSpoofer()
-
-#while True:
-#	test.classify(ser0)
-#	test.sendACK(ser0)
-
+"""
+while True:
+	test.classify(ser0)
+	test.sendACK(ser0)
+"""
 #test.readMessagesStream(ser0)
-test.dontCareJustListen(ser0)
-
-
+#test.dontCareJustListen(ser0)
+"""
+hej = struct.pack('ccccccc', b"\x06", b"\x01", b"\x03", b"\x00", b"\x01", b"\21", b"\05")
+A, B = test.checksum(hej)
+print hex(ord(A))
+print hex(ord(B))
+#0x31 0x89
+"""
+hej = struct.pack('ccccccc', b"\x06", b"\x01", b"\x03", b"\x00", b"\x01", b"\21", b"\05")
+A, B = test.checksum(hej)
+print hex(ord(A))
+print hex(ord(B))
+#0x31 0x89
