@@ -3,15 +3,10 @@ uBlox UBX protocol spoofer for AutoQuad
 
 Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk
 
-Notes to dev:
-* make port a part of class init, no reason for it to be a variable, as it will never change.
-* I THINK AUTOQUAD USES MORE THAN JUST TX AND RX!! (TIMEPULSE, maybe not..)
-* 
-* Make sure that checksum is calculated correctly
-* Try to send positions after receiving last conf. msg.
+Notes to dev: 
+* Try other baud rates? 9600?
+* Clean up file
 * Add the other requested messages
-* What is rate in this case?
-* Send with baud rate 9600?
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -20,8 +15,6 @@ Sources of inspiration:
 import serial
 import struct
 import time
-
-ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
 
 def readAndPrint(port):
 	readByte = port.read()
@@ -37,42 +30,9 @@ class UBXSpoofer():
 		#self.NAV_POSLLH = b"\x01\x02"
 		#self.checksumA = 0
 		#self.checksumB = 0
+		self.ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
 		self.messageClass = ""
 		self.messageID = ""
-
-
-	def dontCareJustListen(self, port):
-		#positionMSG = struct.pack("cccchLllllLL", b"\xb5", b"\x62", b"\x01", b"\x02", 28, 10000000, 0.000001043, 0.000005537, 10000, 10000, 100, 100) #Wrong, length is two bytes
-		#positionMSG += self.checksum(positionMSG[2:])
-		MSG = ""
-		port.write(struct.pack('c', b"\xb5"))
-		port.write(struct.pack('c', b"\x62"))
-		port.write(struct.pack('c', b"\x01"))
-		MSG = struct.pack('c', b"\x01")
-		port.write(struct.pack('c', b"\x02"))
-		MSG += struct.pack('c', b"\x02")
-		port.write(struct.pack('<h', 28))
-		MSG += struct.pack('<h', 28)
-		port.write(struct.pack('<L', 134644000))
-		MSG += struct.pack('<L', 134644000)
-		port.write(struct.pack('<l', 0.000001043)) #Floating point??
-		MSG += struct.pack('<l', 0.000001043)
-		port.write(struct.pack('<l', 0.000005537))
-		MSG += struct.pack('<l', 0.000005537)
-		port.write(struct.pack('<l', 10000))
-		MSG += struct.pack('<l', 10000)
-		port.write(struct.pack('<l', 10000))
-		MSG += struct.pack('<l', 10000)
-		port.write(struct.pack('<L', 100))
-		MSG += struct.pack('<L', 100)
-		port.write(struct.pack('<L', 100))
-		MSG += struct.pack('<L', 100)
-		A, B = self.checksum(MSG)
-		port.write(A)
-		port.write(B)
-		
-		while True:
-			port.write(MSG) #Misses header bytes..
 	
 	def checksum(self, message):
 		CK_A = 0x00
@@ -95,57 +55,57 @@ class UBXSpoofer():
 		self.checksumB += self.checksumA
 	"""
 
-	def readMessagesStream(self, port):
-		readByte = port.read()
+	def readMessagesStream(self):
+		readByte = self.ser0.read()
 		while True:
 			if readByte == "\xb5":
 				print "----------NEW MESSAGE----------"
 				print hex(ord(readByte))
-				readAndPrint(port)
+				readAndPrint(self.ser0)
 				print "-----------CLASS & ID----------"
-				readAndPrint(port)
-				readAndPrint(port)
+				readAndPrint(self.ser0)
+				readAndPrint(self.ser0)
 				print "------------LENGTH-------------"
-				readAndPrint(port)
-				readAndPrint(port)
+				readAndPrint(self.ser0)
+				readAndPrint(self.ser0)
 				print "------PAYLOAD & CHECKSUM-------"
-				readByte = port.read() #Reads startbyte of next package
+				readByte = self.ser0.read() #Reads startbyte of next package
 				while readByte != "\xb5":
 					print hex(ord(readByte))
-					readByte = port.read()
+					readByte = self.ser0.read()
 				print "----------MESSAGE END----------"
 			else:
-				readByte = port.read()
+				readByte = self.ser0.read()
 				print hex(ord(readByte))
 				
-	def classify(self, port):
+	def classify(self):
 		readByte = ""
 		while readByte != "\xb5":
-			readByte = port.read()
-		readByte = port.read()
-		self.messageClass = port.read()
-		self.messageID = port.read()
+			readByte = self.ser0.read()
+		readByte = self.ser0.read()
+		self.messageClass = self.ser0.read()
+		self.messageID = self.ser0.read()
 		print "----------Message classified-----------"
 		print "messageClass: ", hex(ord(self.messageClass))
 		print "messageID: ", hex(ord(self.messageID))
 
-	def sendACK(self, port):
+	def sendACK(self):
 		MSG = ""
-		port.write(struct.pack('c', b"\xb5"))
-		port.write(struct.pack('c', b"\x62"))
-		port.write(struct.pack('c', b"\x05"))
+		self.ser0.write(struct.pack('c', b"\xb5"))
+		self.ser0.write(struct.pack('c', b"\x62"))
+		self.ser0.write(struct.pack('c', b"\x05"))
 		MSG = struct.pack('c', b"\x05")
-		port.write(struct.pack('c', b"\x01"))
+		self.ser0.write(struct.pack('c', b"\x01"))
 		MSG += struct.pack('c', b"\x01")
-		port.write(struct.pack('<h', 2))
+		self.ser0.write(struct.pack('<h', 2))
 		MSG += struct.pack('<h', 2)
-		port.write(struct.pack('c', self.messageClass))
+		self.ser0.write(struct.pack('c', self.messageClass))
 		MSG += struct.pack('c', self.messageClass)
-		port.write(struct.pack('c', self.messageID))
+		self.ser0.write(struct.pack('c', self.messageID))
 		MSG += struct.pack('c', self.messageID)
 		A, B = self.checksum(MSG)
-		port.write(A)
-		port.write(B)
+		self.ser0.write(A)
+		self.ser0.write(B)
 		
 		"""
 		ACKMessage = struct.pack('cc', self.SYNC[0], self.SYNC[1])
@@ -157,45 +117,45 @@ class UBXSpoofer():
 			print "correct message type"
 			ACKMessage += struct.pack('BB', 0x06, 0x00)
 		ACKMessage += self.checksum(ACKMessage[2:])
-		port.write(ACKMessage)
-		port.write("\r\n")
+		self.ser0.write(ACKMessage)
+		self.ser0.write("\r\n")
 		"""
 		print "ACK sent"
 
-	def sendNAV_VELNED(self, port):
+	def sendNAV_VELNED(self):
 		MSG = ""
-		port.write(struct.pack('c', b"\xb5"))
-		port.write(struct.pack('c', b"\x62"))
-		port.write(struct.pack('c', b"\x01"))
+		self.ser0.write(struct.pack('c', b"\xb5"))
+		self.ser0.write(struct.pack('c', b"\x62"))
+		self.ser0.write(struct.pack('c', b"\x01"))
 		MSG = struct.pack('c', b"\x01")
-		port.write(struct.pack('c', b"\x12"))
+		self.ser0.write(struct.pack('c', b"\x12"))
 		MSG = struct.pack('c', b"\x12")
-		port.write(struct.pack('<h', 36))
+		self.ser0.write(struct.pack('<h', 36))
 		MSG = struct.pack('<h', 36)
-		port.write(struct.pack('<L', 134644000))
+		self.ser0.write(struct.pack('<L', 134644000))
 		MSG = struct.pack('<L', 134644000)
-		port.write(struct.pack('<l', 0))
+		self.ser0.write(struct.pack('<l', 0))
 		MSG = struct.pack('<l', 0)
-		port.write(struct.pack('<l', 0))
+		self.ser0.write(struct.pack('<l', 0))
 		MSG = struct.pack('<l', 0)
-		port.write(struct.pack('<l', 0))
+		self.ser0.write(struct.pack('<l', 0))
 		MSG = struct.pack('<l', 0)
-		port.write(struct.pack('<L', 0))
+		self.ser0.write(struct.pack('<L', 0))
 		MSG = struct.pack('<L', 0)
-		port.write(struct.pack('<L', 0))
+		self.ser0.write(struct.pack('<L', 0))
 		MSG = struct.pack('<L', 0)
-		port.write(struct.pack('<l', 0))
+		self.ser0.write(struct.pack('<l', 0))
 		MSG = struct.pack('<l', 0)
-		port.write(struct.pack('<L', 0))
+		self.ser0.write(struct.pack('<L', 0))
 		MSG = struct.pack('<L', 0)
-		port.write(struct.pack('<L', 0))
+		self.ser0.write(struct.pack('<L', 0))
 		MSG = struct.pack('<L', 0)
 		A, B = self.checksum(MSG)
-		port.write(A)
-		port.write(B)
+		self.ser0.write(A)
+		self.ser0.write(B)
 
 	
-	def sendNAV_POSLLH(self, port):
+	def sendNAV_POSLLH(self): #Make one big struct
 		MSG = ""
 		MSG = struct.pack('c', b"\xb5")
 		MSG += struct.pack('c', b"\x62")
@@ -213,11 +173,12 @@ class UBXSpoofer():
 		MSG += A
 		MSG += B
 		
-		port.write(MSG)
+		while True:
+			self.ser0.write(MSG)
 	
-	#def sendNAV_DOP(self, port):
+	#def sendNAV_DOP(self):
 	
-	#def sendNAV_TIMEUTC(self, port):
+	#def sendNAV_TIMEUTC(self):
 	
 
 test = UBXSpoofer()
@@ -228,7 +189,7 @@ while True:
 """
 #test.readMessagesStream(ser0)
 #test.dontCareJustListen(ser0)
-test.sendNAV_POSLLH(ser0)
+test.sendNAV_POSLLH()
 
 # 55.366664, 10.431576
 # 553666640, 104315760
