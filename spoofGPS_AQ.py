@@ -24,10 +24,10 @@ def readAndPrint(port):
 class UBXSpoofer():
 	def __init__(self):
 		#UBX header and ID's
-		#self.SYNC = b"\xb5\x62"
+		self.SYNC = b"\xb5\x62"
+		self.NAV_POSLLH = b"\x01\x02"
 		#self.CFG_PRT = b"\x06\x00"
 		#self.ACK_ACK = b"\x05\x01"
-		#self.NAV_POSLLH = b"\x01\x02"
 		#self.checksumA = 0
 		#self.checksumB = 0
 		self.ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
@@ -43,17 +43,7 @@ class UBXSpoofer():
 			CK_A &= 255
 			CK_B += CK_A
 			CK_B &= 255
-		return struct.pack('B', CK_A), struct.pack('B', CK_B)
-	
-	"""
-	def checksumClear(self):
-		self.checksumA = 0
-		self.checksumB = 0
-	
-	def checksumCalc(self, char):
-		self.checksumA += ord(char) #Should input be 0x00 instead of b"00"???
-		self.checksumB += self.checksumA
-	"""
+		return struct.pack('BB', CK_A, CK_B)
 
 	def readMessagesStream(self):
 		readByte = self.ser0.read()
@@ -124,7 +114,7 @@ class UBXSpoofer():
 
 	def sendNAV_VELNED(self):
 		MSG = ""
-		self.ser0.write(struct.pack('c', b"\xb5"))
+		self.ser0.write(struct.pack('c', b"\xb5")) #Change to sync from init
 		self.ser0.write(struct.pack('c', b"\x62"))
 		self.ser0.write(struct.pack('c', b"\x01"))
 		MSG = struct.pack('c', b"\x01")
@@ -155,14 +145,10 @@ class UBXSpoofer():
 		self.ser0.write(B)
 
 	
-	def sendNAV_POSLLH(self): #Make one big struct
-		msg = struct.pack('<cccchLllllLL', b"\xb5", b"\x62", b"\x01", b"\x02", 28, 134644000, 104315760, 553666640, 10000, 10000, 100, 100)
-		A, B = self.checksum(msg[2:]) #fix checksum
-		msg += A
-		msg += B
-		
-		while True:
-			self.ser0.write(MSG)
+	def sendNAV_POSLLH(self, GPSMsToW, lat, lon, height, hMSL, hAcc, vAcc): #Can GPSMsToW just be a constant?
+		msg = struct.pack('<cccchLllllLL', self.SYNC[0], self.SYNC[1], self.NAV_POSLLH[0], self.NAV_POSLLH[1], 28, GPSMsToW, lon, lat, height, hMSL, hAcc, vAcc)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
 	
 	#def sendNAV_DOP(self):
 	
@@ -170,14 +156,7 @@ class UBXSpoofer():
 	
 
 test = UBXSpoofer()
-"""
-while True:
-	test.classify(ser0)
-	test.sendACK(ser0)
-"""
-#test.readMessagesStream(ser0)
-#test.dontCareJustListen(ser0)
-test.sendNAV_POSLLH()
 
-# 55.366664, 10.431576
-# 553666640, 104315760
+while True:
+	test.sendNAV_POSLLH(134644000, 553666640, 104315760, 10000, 10000, 100, 100)
+
