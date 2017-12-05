@@ -122,10 +122,10 @@ class UBXSpoofer():
 	
 
 test = UBXSpoofer()
-
+	
 while True:
 	test.sendNAV_VELNED(0, 0, 0, 0, 0, 0, 0, 0, 0)
-	test.sendNAV_POSLLH(0, 21.279168, -157.835318, 10000, 10000, 100, 100)
+	test.sendNAV_POSLLH(0, 21.279168, -157.835318, 10000, 10000, 10, 10)
 	test.sendNAV_DOP(0, 1, 1, 1, 1, 1, 1, 1)
 	test.sendNAV_TIMEUTC(0, 0, 0, 2000, 1, 1, 0, 0, 0, b"\x0f")
 
