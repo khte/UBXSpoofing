@@ -51,9 +51,11 @@ class UBXSpoofer():
 		MSG = struct.pack('c', b"\x01")
 		port.write(struct.pack('c', b"\x02"))
 		MSG += struct.pack('c', b"\x02")
+		port.write(struct.pack('<h', 28))
+		MSG += struct.pack('<h', 28)
 		port.write(struct.pack('<L', 134644000))
 		MSG += struct.pack('<L', 134644000)
-		port.write(struct.pack('<l', 0.000001043))
+		port.write(struct.pack('<l', 0.000001043)) #Floating point??
 		MSG += struct.pack('<l', 0.000001043)
 		port.write(struct.pack('<l', 0.000005537))
 		MSG += struct.pack('<l', 0.000005537)
@@ -70,7 +72,7 @@ class UBXSpoofer():
 		port.write(B)
 		
 		while True:
-			port.write(MSG)
+			port.write(MSG) #Misses header bytes..
 	
 	def checksum(self, message):
 		CK_A = 0x00
@@ -159,7 +161,7 @@ class UBXSpoofer():
 		port.write("\r\n")
 		"""
 		print "ACK sent"
-	"""
+
 	def sendNAV_VELNED(self, port):
 		MSG = ""
 		port.write(struct.pack('c', b"\xb5"))
@@ -168,23 +170,55 @@ class UBXSpoofer():
 		MSG = struct.pack('c', b"\x01")
 		port.write(struct.pack('c', b"\x12"))
 		MSG = struct.pack('c', b"\x12")
-		port.write(struct.pack('c', b"\x20")) #08 06 81 20 TOW in litte endian, send as singular bytes instead of as L
-		MSG = struct.pack('c', b"\x20")
-		port.write(struct.pack('c', b"\x81"))
-		MSG = struct.pack('c', b"\x81")
-		port.write(struct.pack('c', b"\x06"))
-		MSG = struct.pack('c', b"\x06")
-		port.write(struct.pack('c', b"\x08"))
-		MSG = struct.pack('c', b"\x08")
-		port.write(struct.pack('c', b"\xAA"))
-		MSG = struct.pack('c', b"\xAA")
-		port.write(struct.pack('c', b"\xAA"))
-		MSG = struct.pack('c', b"\xAA")
-		port.write(struct.pack('c', b"\xAA"))
-		MSG = struct.pack('c', b"\xAA")
-		port.write(struct.pack('c', b"\xAA"))
-		MSG = struct.pack('c', b"\xAA")
-	"""
+		port.write(struct.pack('<h', 36))
+		MSG = struct.pack('<h', 36)
+		port.write(struct.pack('<L', 134644000))
+		MSG = struct.pack('<L', 134644000)
+		port.write(struct.pack('<l', 0))
+		MSG = struct.pack('<l', 0)
+		port.write(struct.pack('<l', 0))
+		MSG = struct.pack('<l', 0)
+		port.write(struct.pack('<l', 0))
+		MSG = struct.pack('<l', 0)
+		port.write(struct.pack('<L', 0))
+		MSG = struct.pack('<L', 0)
+		port.write(struct.pack('<L', 0))
+		MSG = struct.pack('<L', 0)
+		port.write(struct.pack('<l', 0))
+		MSG = struct.pack('<l', 0)
+		port.write(struct.pack('<L', 0))
+		MSG = struct.pack('<L', 0)
+		port.write(struct.pack('<L', 0))
+		MSG = struct.pack('<L', 0)
+		A, B = self.checksum(MSG)
+		port.write(A)
+		port.write(B)
+
+	
+	def sendNAV_POSLLH(self, port):
+		MSG = ""
+		MSG = struct.pack('c', b"\xb5")
+		MSG += struct.pack('c', b"\x62")
+		MSG += struct.pack('c', b"\x01")
+		MSG += struct.pack('c', b"\x02")
+		MSG += struct.pack('<h', 28)
+		MSG += struct.pack('<L', 134644000)
+		MSG += struct.pack('<l', 104315760)
+		MSG += struct.pack('<l', 553666640)
+		MSG += struct.pack('<l', 10000)
+		MSG += struct.pack('<l', 10000)
+		MSG += struct.pack('<L', 10)
+		MSG += struct.pack('<L', 10)
+		A, B = self.checksum(MSG[2:])
+		MSG += A
+		MSG += B
+		
+		port.write(MSG)
+	
+	#def sendNAV_DOP(self, port):
+	
+	#def sendNAV_TIMEUTC(self, port):
+	
 
 test = UBXSpoofer()
 """
@@ -193,4 +227,8 @@ while True:
 	test.sendACK(ser0)
 """
 #test.readMessagesStream(ser0)
-test.dontCareJustListen(ser0)
+#test.dontCareJustListen(ser0)
+test.sendNAV_POSLLH(ser0)
+
+# 55.366664, 10.431576
+# 553666640, 104315760
