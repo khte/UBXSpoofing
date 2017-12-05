@@ -156,22 +156,10 @@ class UBXSpoofer():
 
 	
 	def sendNAV_POSLLH(self): #Make one big struct
-		MSG = ""
-		MSG = struct.pack('c', b"\xb5")
-		MSG += struct.pack('c', b"\x62")
-		MSG += struct.pack('c', b"\x01")
-		MSG += struct.pack('c', b"\x02")
-		MSG += struct.pack('<h', 28)
-		MSG += struct.pack('<L', 134644000)
-		MSG += struct.pack('<l', 104315760)
-		MSG += struct.pack('<l', 553666640)
-		MSG += struct.pack('<l', 10000)
-		MSG += struct.pack('<l', 10000)
-		MSG += struct.pack('<L', 10)
-		MSG += struct.pack('<L', 10)
-		A, B = self.checksum(MSG[2:])
-		MSG += A
-		MSG += B
+		msg = struct.pack('<cccchLllllLL', b"\xb5", b"\x62", b"\x01", b"\x02", 28, 134644000, 104315760, 553666640, 10000, 10000, 100, 100)
+		A, B = self.checksum(msg[2:]) #fix checksum
+		msg += A
+		msg += B
 		
 		while True:
 			self.ser0.write(MSG)
