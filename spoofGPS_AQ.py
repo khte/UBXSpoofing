@@ -5,8 +5,7 @@ Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk
 
 Notes to dev: 
 * Try other baud rates? 9600?
-* Clean up file
-* Add the other requested messages
+* Add TIM-TP and AID-REQ?
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -23,14 +22,13 @@ def readAndPrint(port):
 
 class UBXSpoofer():
 	def __init__(self):
+		self.ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
 		#UBX header and ID's
 		self.SYNC = b"\xb5\x62"
+		self.NAV_VELNED = b"\x01\x12"
 		self.NAV_POSLLH = b"\x01\x02"
-		#self.CFG_PRT = b"\x06\x00"
-		#self.ACK_ACK = b"\x05\x01"
-		#self.checksumA = 0
-		#self.checksumB = 0
-		self.ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
+		self.NAV_DOP = b"\x01\x04"
+		self.NAV_TIMEUTC = b"\x01\x21"
 		self.messageClass = ""
 		self.messageID = ""
 	
@@ -44,7 +42,7 @@ class UBXSpoofer():
 			CK_B += CK_A
 			CK_B &= 255
 		return struct.pack('BB', CK_A, CK_B)
-
+	"""
 	def readMessagesStream(self):
 		readByte = self.ser0.read()
 		while True:
@@ -96,67 +94,38 @@ class UBXSpoofer():
 		A, B = self.checksum(MSG)
 		self.ser0.write(A)
 		self.ser0.write(B)
-		
-		"""
-		ACKMessage = struct.pack('cc', self.SYNC[0], self.SYNC[1])
-		ACKMessage += struct.pack('cc', self.ACK_ACK[0], self.ACK_ACK[1])
-		ACKMessage += struct.pack('<h', 2)
-		if self.messageClass == "":
-			print "not the correct message type"
-		if self.messageClass == "\x06" and self.messageID == "\x00":
-			print "correct message type"
-			ACKMessage += struct.pack('BB', 0x06, 0x00)
-		ACKMessage += self.checksum(ACKMessage[2:])
-		self.ser0.write(ACKMessage)
-		self.ser0.write("\r\n")
-		"""
 		print "ACK sent"
+	"""
+	"""Input units:"""
+	def sendNAV_VELNED(self, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc):
+		msg = struct.pack('<cccchLlllLLlLL', self.SYNC[0], self.SYNC[1], self.NAV_VELNED[0], self.NAV_VELNED[1], 36, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
 
-	def sendNAV_VELNED(self):
-		MSG = ""
-		self.ser0.write(struct.pack('c', b"\xb5")) #Change to sync from init
-		self.ser0.write(struct.pack('c', b"\x62"))
-		self.ser0.write(struct.pack('c', b"\x01"))
-		MSG = struct.pack('c', b"\x01")
-		self.ser0.write(struct.pack('c', b"\x12"))
-		MSG = struct.pack('c', b"\x12")
-		self.ser0.write(struct.pack('<h', 36))
-		MSG = struct.pack('<h', 36)
-		self.ser0.write(struct.pack('<L', 134644000))
-		MSG = struct.pack('<L', 134644000)
-		self.ser0.write(struct.pack('<l', 0))
-		MSG = struct.pack('<l', 0)
-		self.ser0.write(struct.pack('<l', 0))
-		MSG = struct.pack('<l', 0)
-		self.ser0.write(struct.pack('<l', 0))
-		MSG = struct.pack('<l', 0)
-		self.ser0.write(struct.pack('<L', 0))
-		MSG = struct.pack('<L', 0)
-		self.ser0.write(struct.pack('<L', 0))
-		MSG = struct.pack('<L', 0)
-		self.ser0.write(struct.pack('<l', 0))
-		MSG = struct.pack('<l', 0)
-		self.ser0.write(struct.pack('<L', 0))
-		MSG = struct.pack('<L', 0)
-		self.ser0.write(struct.pack('<L', 0))
-		MSG = struct.pack('<L', 0)
-		A, B = self.checksum(MSG)
-		self.ser0.write(A)
-		self.ser0.write(B)
-
-	
+	"""Input units: ms, deg, deg, mm, mm, mm, mm"""
 	def sendNAV_POSLLH(self, GPSMsToW, lat, lon, height, hMSL, hAcc, vAcc): #Can GPSMsToW just be a constant?
-		msg = struct.pack('<cccchLllllLL', self.SYNC[0], self.SYNC[1], self.NAV_POSLLH[0], self.NAV_POSLLH[1], 28, GPSMsToW, lon, lat, height, hMSL, hAcc, vAcc)
+		msg = struct.pack('<cccchLllllLL', self.SYNC[0], self.SYNC[1], self.NAV_POSLLH[0], self.NAV_POSLLH[1], 28, GPSMsToW, lon * 10000000, lat * 10000000, height, hMSL, hAcc, vAcc)
 		msg += self.checksum(msg[2:])
 		self.ser0.write(msg)
 	
-	#def sendNAV_DOP(self):
+	"""Input units: ms, deg, deg, mm, mm, mm, m"""
+	def sendNAV_DOP(self, GPSMsToW, gDOP, pDOP, tDOP, vDOP, hDOP, nDOP, eDOP):
+		msg = struct.pack('<cccchLHHHHHHH', self.SYNC[0], self.SYNC[1], self.NAV_DOP[0], self.NAV_DOP[1], 18, GPSMsToW, gDOP * 100, pDOP * 100, tDOP * 100, vDOP * 100, hDOP * 100, nDOP * 100, eDOP * 100)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
 	
-	#def sendNAV_TIMEUTC(self):
+	
+	def sendNAV_TIMEUTC(self, GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid):
+		msg = struct.pack('<cccchLLlHhhhhhc', self.SYNC[0], self.SYNC[1], self.NAV_TIMEUTC[0], self.NAV_TIMEUTC[1], 20, GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
 	
 
 test = UBXSpoofer()
 
 while True:
-	test.sendNAV_POSLLH(134644000, 553666640, 104315760, 10000, 10000, 100, 100)
+	test.sendNAV_VELNED(0, 0, 0, 0, 0, 0, 0, 0, 0)
+	test.sendNAV_POSLLH(0, 21.279168, -157.835318, 10000, 10000, 100, 100)
+	test.sendNAV_DOP(0, 1, 1, 1, 1, 1, 1, 1)
+	test.sendNAV_TIMEUTC(0, 0, 0, 2000, 1, 1, 0, 0, 0, b"\x0f")
 
