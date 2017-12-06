@@ -23,7 +23,7 @@ def readAndPrint(port):
 
 class UBXSpoofer():
 	def __init__(self):
-		self.ser0 = serial.Serial(port = "/dev/ttyUSB0", baudrate = 230400)
+		self.ser0 = serial.Serial(port = "/dev/ttyUSB0") #, baudrate = 230400
 		#UBX header and ID's
 		self.SYNC = b"\xb5\x62"
 		self.NAV_VELNED = b"\x01\x12"
@@ -35,6 +35,21 @@ class UBXSpoofer():
 		self.baudFound = False
 	
 	def startSpoofing(self):
+		#Find the requested baud rate
+		while not self.baudFound:
+			readByte = self.ser0.read()
+			if readByte == "\xb5":
+				readBytes = self.ser0.read(3)
+				if readBytes[1] == "\x06" and readBytes[2] == "\x00":
+					print "CFG-PRT"
+					readBytes = self.ser0.read(14)
+					print type(readBytes)
+					baudBytes = readBytes[10:]
+					print hex(ord(baudBytes[0])), hex(ord(baudBytes[1])), hex(ord(baudBytes[2])), hex(ord(baudBytes[3]))
+
+		#ser.baudrate = 115200
+		
+		#Send positional data to flight controller
 		while True:
 			GPSMsToW = self.calcMsToW()
 			
