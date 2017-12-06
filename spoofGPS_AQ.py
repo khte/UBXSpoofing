@@ -14,6 +14,7 @@ Sources of inspiration:
 import serial
 import struct
 import time
+import datetime
 
 def readAndPrint(port):
 	readByte = port.read()
@@ -42,7 +43,51 @@ class UBXSpoofer():
 			CK_B += CK_A
 			CK_B &= 255
 		return struct.pack('BB', CK_A, CK_B)
-	"""
+	
+	def calcMsToW(self):
+		weekday = datetime.datetime.today().weekday()
+		time = datetime.datetime.now()
+		GPSMsToW = weekday * 86400000 + time.hour * 3600000 + time.minute * 60000 + time.second * 1000
+		return GPSMsToW		
+
+	"""Input units: ms, cm/s, cm/s, cm/s, cm/s, cm/s, deg, cm/s, deg"""
+	def sendNAV_VELNED(self, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc):
+		msg = struct.pack('<cccchLlllLLlLL', self.SYNC[0], self.SYNC[1], self.NAV_VELNED[0], self.NAV_VELNED[1], 36, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
+
+	"""Input units: ms, deg, deg, mm, mm, mm, mm"""
+	def sendNAV_POSLLH(self, GPSMsToW, lat, lon, height, hMSL, hAcc, vAcc): #Can GPSMsToW just be a constant?
+		msg = struct.pack('<cccchLllllLL', self.SYNC[0], self.SYNC[1], self.NAV_POSLLH[0], self.NAV_POSLLH[1], 28, GPSMsToW, lon * 10000000, lat * 10000000, height, hMSL, hAcc, vAcc)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
+	
+	"""Input units: ms"""
+	def sendNAV_DOP(self, GPSMsToW, gDOP, pDOP, tDOP, vDOP, hDOP, nDOP, eDOP):
+		msg = struct.pack('<cccchLHHHHHHH', self.SYNC[0], self.SYNC[1], self.NAV_DOP[0], self.NAV_DOP[1], 18, GPSMsToW, gDOP * 100, pDOP * 100, tDOP * 100, vDOP * 100, hDOP * 100, nDOP * 100, eDOP * 100)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
+	
+	"""Input units: ns, ns, year, month, day, hour, minute, second"""
+	def sendNAV_TIMEUTC(self, GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid):
+		msg = struct.pack('<cccchLLlHhhhhhc', self.SYNC[0], self.SYNC[1], self.NAV_TIMEUTC[0], self.NAV_TIMEUTC[1], 20, GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
+		msg += self.checksum(msg[2:])
+		self.ser0.write(msg)
+	
+
+spoof = UBXSpoofer()
+
+spoof.calcMsToW()
+
+"""	
+while True:
+	spoof.sendNAV_VELNED(0, 0, 0, 0, 0, 0, 0, 0, 0)
+	spoof.sendNAV_POSLLH(0, 21.279168, -157.835318, 10000, 10000, 10, 10)
+	spoof.sendNAV_DOP(0, 1, 1, 1, 1, 1, 1, 1)
+	spoof.sendNAV_TIMEUTC(0, 0, 0, 2000, 1, 1, 0, 0, 0, b"\x0f")
+"""
+
+"""
 	def readMessagesStream(self):
 		readByte = self.ser0.read()
 		while True:
@@ -95,37 +140,4 @@ class UBXSpoofer():
 		self.ser0.write(A)
 		self.ser0.write(B)
 		print "ACK sent"
-	"""
-	"""Input units:"""
-	def sendNAV_VELNED(self, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc):
-		msg = struct.pack('<cccchLlllLLlLL', self.SYNC[0], self.SYNC[1], self.NAV_VELNED[0], self.NAV_VELNED[1], 36, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc)
-		msg += self.checksum(msg[2:])
-		self.ser0.write(msg)
-
-	"""Input units: ms, deg, deg, mm, mm, mm, mm"""
-	def sendNAV_POSLLH(self, GPSMsToW, lat, lon, height, hMSL, hAcc, vAcc): #Can GPSMsToW just be a constant?
-		msg = struct.pack('<cccchLllllLL', self.SYNC[0], self.SYNC[1], self.NAV_POSLLH[0], self.NAV_POSLLH[1], 28, GPSMsToW, lon * 10000000, lat * 10000000, height, hMSL, hAcc, vAcc)
-		msg += self.checksum(msg[2:])
-		self.ser0.write(msg)
-	
-	"""Input units: ms, deg, deg, mm, mm, mm, m"""
-	def sendNAV_DOP(self, GPSMsToW, gDOP, pDOP, tDOP, vDOP, hDOP, nDOP, eDOP):
-		msg = struct.pack('<cccchLHHHHHHH', self.SYNC[0], self.SYNC[1], self.NAV_DOP[0], self.NAV_DOP[1], 18, GPSMsToW, gDOP * 100, pDOP * 100, tDOP * 100, vDOP * 100, hDOP * 100, nDOP * 100, eDOP * 100)
-		msg += self.checksum(msg[2:])
-		self.ser0.write(msg)
-	
-	
-	def sendNAV_TIMEUTC(self, GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid):
-		msg = struct.pack('<cccchLLlHhhhhhc', self.SYNC[0], self.SYNC[1], self.NAV_TIMEUTC[0], self.NAV_TIMEUTC[1], 20, GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
-		msg += self.checksum(msg[2:])
-		self.ser0.write(msg)
-	
-
-test = UBXSpoofer()
-	
-while True:
-	test.sendNAV_VELNED(0, 0, 0, 0, 0, 0, 0, 0, 0)
-	test.sendNAV_POSLLH(0, 21.279168, -157.835318, 10000, 10000, 10, 10)
-	test.sendNAV_DOP(0, 1, 1, 1, 1, 1, 1, 1)
-	test.sendNAV_TIMEUTC(0, 0, 0, 2000, 1, 1, 0, 0, 0, b"\x0f")
-
+"""
