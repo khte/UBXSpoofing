@@ -32,7 +32,20 @@ class UBXSpoofer():
 		self.NAV_TIMEUTC = b"\x01\x21"
 		self.messageClass = ""
 		self.messageID = ""
+		self.baudFound = False
 	
+	def startSpoofing(self):
+		while True:
+			GPSMsToW = self.calcMsToW()
+			
+			#read positional data from source (optionally velocity data also)
+			#convert to geodetic coordinates if necessary
+			
+			#self.sendNAV_VELNED(self,GPSMsToW, velN, velE, velD, speed, gSpeed, heading, speedAcc, headingAcc)
+			self.sendNAV_POSLLH(GPSMsToW, 21.279168, -157.835318, 10000, 10000, 10, 10)
+			self.sendNAV_DOP(GPSMsToW, 1, 1, 1, 1, 1, 1, 1)
+			#self.sendNAV_TIMEUTC(GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
+
 	def checksum(self, message):
 		CK_A = 0x00
 		CK_B = 0x00
@@ -51,7 +64,7 @@ class UBXSpoofer():
 		return GPSMsToW		
 
 	"""Input units: ms, cm/s, cm/s, cm/s, cm/s, cm/s, deg, cm/s, deg"""
-	def sendNAV_VELNED(self, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc):
+	def sendNAV_VELNED(self, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, headingAcc):
 		msg = struct.pack('<cccchLlllLLlLL', self.SYNC[0], self.SYNC[1], self.NAV_VELNED[0], self.NAV_VELNED[1], 36, GPSMsToW, velN, velE, velD, speed, gSpeed, heading, sAcc, cAcc)
 		msg += self.checksum(msg[2:])
 		self.ser0.write(msg)
@@ -76,16 +89,7 @@ class UBXSpoofer():
 	
 
 spoof = UBXSpoofer()
-
-spoof.calcMsToW()
-
-"""	
-while True:
-	spoof.sendNAV_VELNED(0, 0, 0, 0, 0, 0, 0, 0, 0)
-	spoof.sendNAV_POSLLH(0, 21.279168, -157.835318, 10000, 10000, 10, 10)
-	spoof.sendNAV_DOP(0, 1, 1, 1, 1, 1, 1, 1)
-	spoof.sendNAV_TIMEUTC(0, 0, 0, 2000, 1, 1, 0, 0, 0, b"\x0f")
-"""
+spoof.startSpoofing()
 
 """
 	def readMessagesStream(self):
