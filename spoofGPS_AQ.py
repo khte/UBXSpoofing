@@ -7,6 +7,7 @@ Notes to dev:
 * Test with Pixhawk2
 * Try timing the positional data sending
 * Add TIM-TP and AID-REQ?
+* Make separate file with NMEA reader
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py
@@ -24,8 +25,8 @@ def readAndPrint(port):
 
 class UBXSpoofer():
 	def __init__(self):
-		self.serialOut = serial.Serial(port = "/dev/ttyUSB0") #, baudrate = 230400
-		# UBX header and ID's
+		self.serialOut = serial.Serial(port = "/dev/ttyUSB0")
+		#UBX header and ID's
 		self.SYNC = b"\xb5\x62"
 		self.NAV_VELNED = b"\x01\x12"
 		self.NAV_POSLLH = b"\x01\x02"
@@ -52,12 +53,12 @@ class UBXSpoofer():
 		
 		#Send positional data to flight controller
 		print "Parsing positional data"
+		GPSMsToW = 0
 		while True:
-			GPSMsToW = self.calcMsToW()
+			#GPSMsToW = self.calcMsToW()
 			
 			#read positional data from source (optionally velocity data also)
-			#convert to geodetic coordinates if necessary
-			
+
 			#self.sendNAV_VELNED(self,GPSMsToW, velN, velE, velD, speed, gSpeed, heading, speedAcc, headingAcc)
 			self.sendNAV_POSLLH(GPSMsToW, 21.279168, -157.835318, 10000, 10000, 10, 10)
 			self.sendNAV_DOP(GPSMsToW, 1, 1, 1, 1, 1, 1, 1)
