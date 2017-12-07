@@ -25,7 +25,7 @@ def readAndPrint(port):
 class UBXSpoofer():
 	def __init__(self):
 		self.serialOut = serial.Serial(port = "/dev/ttyUSB0") #, baudrate = 230400
-		#UBX header and ID's
+		# UBX header and ID's
 		self.SYNC = b"\xb5\x62"
 		self.NAV_VELNED = b"\x01\x12"
 		self.NAV_POSLLH = b"\x01\x02"
