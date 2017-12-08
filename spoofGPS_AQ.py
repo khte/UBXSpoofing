@@ -10,7 +10,7 @@ Notes to dev:
 * Make separate file with NMEA reader
 
 Sources of inspiration:
-* https://github.com/deleted/ublox/blob/master/message.py
+* https://github.com/deleted/ublox/blob/master/message.py 
 """
 
 import serial
