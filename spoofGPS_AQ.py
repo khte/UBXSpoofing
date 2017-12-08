@@ -54,13 +54,14 @@ class UBXSpoofer():
 		#Send positional data to flight controller
 		print "Parsing positional data"
 		GPSMsToW = 0
+		lat = 21.279168
 		while True:
 			#GPSMsToW = self.calcMsToW()
-			
+			lat = lat + 0.0001 #For testing
 			#read positional data from source (optionally velocity data also)
-
+			
 			#self.sendNAV_VELNED(self,GPSMsToW, velN, velE, velD, speed, gSpeed, heading, speedAcc, headingAcc)
-			self.sendNAV_POSLLH(GPSMsToW, 21.279168, -157.835318, 10000, 10000, 10, 10)
+			self.sendNAV_POSLLH(GPSMsToW, lat, -157.835318, 10000, 10000, 10, 10)
 			self.sendNAV_DOP(GPSMsToW, 1, 1, 1, 1, 1, 1, 1)
 			#self.sendNAV_TIMEUTC(GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
 
