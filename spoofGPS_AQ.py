@@ -18,10 +18,24 @@ import struct
 import time
 import datetime
 
-def readAndPrint(port):
-	readByte = port.read()
-	print hex(ord(readByte))
-	return readByte
+class NMEAReader():
+	def __init__(self):
+		#self.serialIn = serial.Serial(port = "/dev/tty??")
+		posFound = False
+	
+	def getPos():
+		posFound = False
+		while not posFound:
+			readLine = ser.readline()
+			if "GGA" in readLine:
+				data = readLine.split(",")
+				timestamp = data[1]
+				lat = data[2]
+				lon = data[3]
+				hDop = data[6]
+				alt = data[7]
+				posFound = True
+				return timestamp, lat, lon, hDop, alt
 
 class UBXSpoofer():
 	def __init__(self):
@@ -32,10 +46,13 @@ class UBXSpoofer():
 		self.NAV_POSLLH = b"\x01\x02"
 		self.NAV_DOP = b"\x01\x04"
 		self.NAV_TIMEUTC = b"\x01\x21"
+		#Other variables
 		self.messageClass = ""
 		self.messageID = ""
 		self.baudFound = False
 		self.debug = True
+		#Instantiation of other classes
+		self.r = NMEAReader()
 	
 	def startSpoofing(self):
 		#Find the requested baud rate
@@ -57,11 +74,11 @@ class UBXSpoofer():
 		lat = 21.279168
 		while True:
 			#GPSMsToW = self.calcMsToW()
-			lat = lat + 0.0001 #For testing
 			#read positional data from source (optionally velocity data also)
+			timestamp, lat, lon, hDop, alt = self.r.getPos
 			
 			#self.sendNAV_VELNED(self,GPSMsToW, velN, velE, velD, speed, gSpeed, heading, speedAcc, headingAcc)
-			self.sendNAV_POSLLH(GPSMsToW, lat, -157.835318, 10000, 10000, 10, 10)
+			self.sendNAV_POSLLH(GPSMsToW, lat, lon, alt, alt, 10, 10)
 			self.sendNAV_DOP(GPSMsToW, 1, 1, 1, 1, 1, 1, 1)
 			#self.sendNAV_TIMEUTC(GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
 
@@ -89,7 +106,7 @@ class UBXSpoofer():
 		self.serialOut.write(msg)
 
 	"""Input units: ms, deg, deg, mm, mm, mm, mm"""
-	def sendNAV_POSLLH(self, GPSMsToW, lat, lon, height, hMSL, hAcc, vAcc): #Can GPSMsToW just be a constant?
+	def sendNAV_POSLLH(self, GPSMsToW, lat, lon, height, hMSL, hAcc, vAcc):
 		msg = struct.pack('<cccchLllllLL', self.SYNC[0], self.SYNC[1], self.NAV_POSLLH[0], self.NAV_POSLLH[1], 28, GPSMsToW, lon * 10000000, lat * 10000000, height, hMSL, hAcc, vAcc)
 		msg += self.checksum(msg[2:])
 		self.serialOut.write(msg)
@@ -111,6 +128,11 @@ spoof = UBXSpoofer()
 spoof.startSpoofing()
 
 """
+	def readAndPrint(port):
+		readByte = port.read()
+		print hex(ord(readByte))
+		return readByte
+
 	def readMessagesStream(self):
 		readByte = self.serialOut.read()
 		while True:
