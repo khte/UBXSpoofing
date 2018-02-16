@@ -1,13 +1,12 @@
 """
 uBlox UBX protocol spoofer for AutoQuad
 
-Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk
+Author: Kristian Husum Terkildsen, khte@mmmi.sdu.dk, November '17
 
 Notes to dev: 
 * Test with Pixhawk2
 * Try timing the positional data sending
 * Add TIM-TP and AID-REQ?
-* Make separate file with NMEA reader
 
 Sources of inspiration:
 * https://github.com/deleted/ublox/blob/master/message.py 
@@ -20,26 +19,27 @@ import datetime
 
 class NMEAReader():
 	def __init__(self):
-		#self.serialIn = serial.Serial(port = "/dev/tty??")
+		self.serialIn = serial.Serial(port = "/dev/ttyUSB0", baudrate = 115200)
 		posFound = False
 	
-	def getPos():
+	def getPos(self):
 		posFound = False
 		while not posFound:
-			readLine = ser.readline()
+			readLine = self.serialIn.readline()
 			if "GGA" in readLine:
 				data = readLine.split(",")
 				timestamp = data[1]
-				lat = data[2]
-				lon = data[3]
-				hDop = data[6]
-				alt = data[7]
+				lat = float(data[2])
+				lon = float(data[4])
+				hDop = float(data[8])
+				alt = float(data[9])
 				posFound = True
+				
 				return timestamp, lat, lon, hDop, alt
 
 class UBXSpoofer():
 	def __init__(self):
-		self.serialOut = serial.Serial(port = "/dev/ttyUSB0")
+		self.serialOut = serial.Serial(port = "/dev/ttyUSB1")
 		#UBX header and ID's
 		self.SYNC = b"\xb5\x62"
 		self.NAV_VELNED = b"\x01\x12"
@@ -56,6 +56,7 @@ class UBXSpoofer():
 	
 	def startSpoofing(self):
 		#Find the requested baud rate
+		
 		while not self.baudFound:
 			readByte = self.serialOut.read()
 			if readByte == "\xb5":
@@ -71,15 +72,18 @@ class UBXSpoofer():
 		#Send positional data to flight controller
 		print "Parsing positional data"
 		GPSMsToW = 0
-		lat = 21.279168
 		while True:
 			#GPSMsToW = self.calcMsToW()
 			#read positional data from source (optionally velocity data also)
-			timestamp, lat, lon, hDop, alt = self.r.getPos
+			timestamp, lat, lon, hDop, alt = self.r.getPos()
+			
+			lat = lat / 100
+			lon = lon / 100
+			alt = alt * 1000
 			
 			#self.sendNAV_VELNED(self,GPSMsToW, velN, velE, velD, speed, gSpeed, heading, speedAcc, headingAcc)
 			self.sendNAV_POSLLH(GPSMsToW, lat, lon, alt, alt, 10, 10)
-			self.sendNAV_DOP(GPSMsToW, 1, 1, 1, 1, 1, 1, 1)
+			self.sendNAV_DOP(GPSMsToW, 1, 1, 1, 1, hDop, 1, 1)
 			#self.sendNAV_TIMEUTC(GPSMsToW, tAcc, nano, year, month, day, hour, minute, sec, valid)
 
 	def checksum(self, message):
@@ -126,63 +130,3 @@ class UBXSpoofer():
 
 spoof = UBXSpoofer()
 spoof.startSpoofing()
-
-"""
-	def readAndPrint(port):
-		readByte = port.read()
-		print hex(ord(readByte))
-		return readByte
-
-	def readMessagesStream(self):
-		readByte = self.serialOut.read()
-		while True:
-			if readByte == "\xb5":
-				print "----------NEW MESSAGE----------"
-				print hex(ord(readByte))
-				readAndPrint(self.serialOut)
-				print "-----------CLASS & ID----------"
-				readAndPrint(self.serialOut)
-				readAndPrint(self.serialOut)
-				print "------------LENGTH-------------"
-				readAndPrint(self.serialOut)
-				readAndPrint(self.serialOut)
-				print "------PAYLOAD & CHECKSUM-------"
-				readByte = self.serialOut.read() #Reads startbyte of next package
-				while readByte != "\xb5":
-					print hex(ord(readByte))
-					readByte = self.serialOut.read()
-				print "----------MESSAGE END----------"
-			else:
-				readByte = self.serialOut.read()
-				print hex(ord(readByte))
-				
-	def classify(self):
-		readByte = ""
-		while readByte != "\xb5":
-			readByte = self.serialOut.read()
-		readByte = self.serialOut.read()
-		self.messageClass = self.serialOut.read()
-		self.messageID = self.serialOut.read()
-		print "----------Message classified-----------"
-		print "messageClass: ", hex(ord(self.messageClass))
-		print "messageID: ", hex(ord(self.messageID))
-
-	def sendACK(self):
-		MSG = ""
-		self.serialOut.write(struct.pack('c', b"\xb5"))
-		self.serialOut.write(struct.pack('c', b"\x62"))
-		self.serialOut.write(struct.pack('c', b"\x05"))
-		MSG = struct.pack('c', b"\x05")
-		self.serialOut.write(struct.pack('c', b"\x01"))
-		MSG += struct.pack('c', b"\x01")
-		self.serialOut.write(struct.pack('<h', 2))
-		MSG += struct.pack('<h', 2)
-		self.serialOut.write(struct.pack('c', self.messageClass))
-		MSG += struct.pack('c', self.messageClass)
-		self.serialOut.write(struct.pack('c', self.messageID))
-		MSG += struct.pack('c', self.messageID)
-		A, B = self.checksum(MSG)
-		self.serialOut.write(A)
-		self.serialOut.write(B)
-		print "ACK sent"
-"""
